@@ -98,10 +98,14 @@ class XenForo(object):
     return page
   
   def _get_token(self, page):
-    token_rex = re.compile(r'\<a href\=\"logout/\?_xfToken\=(.+?[^\"])"')
+    token_rex = re.compile(r'\<a href\=\"logout/\?_xfToken\=(.+?[^\"])\"')
     token     = token_rex.findall(page)[0]
     token     = token.replace('%2C',',')
     return token
+  
+  def _get_resolver(self, page):
+    res_rex   = re.compile(r'name\=\"_xfRelativeResolver" value\="(.+[^\"])\"')
+    return res_rex.findall(page)[0]
   
   def login(self):
     self._get('/')
@@ -118,10 +122,9 @@ class XenForo(object):
     return self._logged_in(page)
   
   def private_message(self, user, subject, message, locked=False):
-    res_rex   = re.compile(r'name\=\"_xfRelativeResolver\" value\=\"(.+[^\"])\"')
     page      = self._get('/conversations/add')
     token     = self._get_token(page)
-    resolver  = res_rex.findall(page)[0]
+    resolver  = _get_resolver(page)
     formdata  = {
                'recipients': user,
                     'title': subject,
@@ -130,6 +133,30 @@ class XenForo(object):
       'conversation_locked': int(locked),
                  '_xfToken': token
     }
-    print formdata
     page  = self._post('/conversations/insert', formdata)
     return page
+  def change_title(self, threadid, title):
+    threadurl = '/threads/%i/' % threadid
+    page = self._get(threadurl)
+    token = self._get_token(page)
+    formdata = {
+    'title': title,
+    '_xfToken': token
+    }
+    page = self._post('%s/save' % threadurl, formdata)
+    return page
+  
+  def change_post(self, postid, messagehtml):
+    page = self._get('/posts/%i/edit-inline' % postid)
+    token = self._get_token(page)
+    resolver = self._get_resolver(page)
+    formdata = {
+    'message_html': messagehtml,
+    '_xfRelativeResolver': resolver,
+    'attachment_hash': 'bcf92c353751f0d22f9fa70f92fb8e99',
+    'watch_thread': '1',
+    'watch_thread_email': '1',
+    'watch_thread_state': '1',
+    '_xfToken': token
+    }
+    page = self._post('/posts/%i/save' % postid, formdata)
