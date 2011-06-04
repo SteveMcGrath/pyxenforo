@@ -124,7 +124,7 @@ class XenForo(object):
   def private_message(self, user, subject, message, locked=False):
     page      = self._get('/conversations/add')
     token     = self._get_token(page)
-    resolver  = _get_resolver(page)
+    resolver  = self._get_resolver(page)
     formdata  = {
                'recipients': user,
                     'title': subject,
@@ -135,6 +135,7 @@ class XenForo(object):
     }
     page  = self._post('/conversations/insert', formdata)
     return page
+  
   def change_title(self, threadid, title):
     threadurl = '/threads/%i/' % threadid
     page = self._get(threadurl)
